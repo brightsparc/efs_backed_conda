@@ -6,6 +6,6 @@
   "-f",
   "{connection_file}"
  ],
- "display_name": "Python 3",
+ "display_name": "Conda with EFS",
  "language": "python"
 }
