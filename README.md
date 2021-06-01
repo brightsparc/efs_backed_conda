@@ -159,6 +159,8 @@ Go to IAM and find your Sagemaker Execution Role, and add a new inline policy wi
 
 ## Installation steps
 
+This solution will allow to build and register a image that supports a custom [ipython kernel](./custom_kernel_spec/kernel.json).
+
 1. Build the [docker image](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-byoi-sdk-add-container-image.html) and push to ECR:
 
 ```bash
@@ -170,47 +172,56 @@ Make a note of the `Image URI` in the output.
 
 2. Attach the docker image to the SageMaker Studio Domain. You can use the AWS Console or the command line as described below:
 
-```bash
-# Set environment variables
-export IMAGE_URI=<<Image URI>>
-export SAGEMAKER_EXECUTION_ROLE=<<SageMakerExecutionRoleArn>>
-export DOMAIN_ID=<<SageMakerDomainID>>
+For this step you will need your current SageMaker Domain ID which get in output of list-domains:
 
-# Create image, app, and update domain
+```bash
+aws sagemaker list-domains
+```
+
+Let's also set the Executore Role ARN and Image URI in environment variables:
+
+```bash
+export SAGEMAKER_EXECUTION_ROLE=<<SageMaker Execution Role Arn>>
+export DOMAIN_ID=<<Domain ID>>
+export IMAGE_URI=<<Image URI>>
+```
+
+Now we can create an image, version, app config and update the domain:
+
+```bash
 aws sagemaker create-image --image-name conda-efs --role-arn $SAGEMAKER_EXECUTION_ROLE --display-name "Conda with EFS backed env"
 aws sagemaker create-image-version --base-image $IMAGE_URI --image-name conda-efs
 aws sagemaker create-app-image-config --cli-input-json file://app-image-config-input.json
 aws sagemaker update-domain --domain-id $DOMAIN_ID --cli-input-json file://update-domain.json
 ```
 
-`NOTE`: If you are updating an existing app-image, use `update-app-image` command.
+`NOTE`: If you are updating an existing app-image, use `update-app-image-config` command.
 
 
-3. From Studio use the Image terminal of the **datascience** first-party kernel image and create the conda environment in the following way:
+3. From Studio use the Image terminal of the **datascience** first-party kernel image and create the conda environment with `ipykernel` installed in the following way:
 
 ```bash
 mkdir -p ~/.conda/envs
 conda create -p ~/.conda/envs/custom
-conda activate custom
-conda install scikit-learn numpy
+conda activate custom # Or you can run ". activate /home/$NB_USER/.conda/envs/$NB_ENV"
+conda install scikit-learn numpy ipykernel
 ```
 
-Also create a **.condarc** file on the EFS volume with the following content:
-
-```
-envs_dirs:
-  - ~/.conda/envs
-```
-
-3. Create a notebook with the custom EFS backed conda image.
+4. Create a notebook with the custom EFS backed conda image.
 
 You can list the current conda environment by running:
 
-```
+```bash
 conda env list
 ```
 
-4. For installing packages permanently on EFS, use the image terminal of the custom image. You can install packages like in the example below:
+You can also list all details of the current environment by running:
+
+```bash
+conda info
+```
+
+5. For installing packages permanently on EFS, use the image terminal of the custom image. You can install packages like in the example below:
 
 ```bash
 conda activate custom

@@ -1,8 +1,9 @@
-FROM ubuntu:20.04
+FROM public.ecr.aws/ubuntu/ubuntu:20.04
 
 ARG NB_USER="sagemaker-user"
 ARG NB_UID="1000"
 ARG NB_GID="100"
+ARG NB_ENV="custom"
 
 ######################
 # OVERVIEW
@@ -31,10 +32,24 @@ RUN conda install numpy scikit-learn ipykernel
 
 # update kernelspec to load our custom environment strored on EFS
 RUN rm -rf /miniconda/share/jupyter/kernels/python3
-#COPY custom_kernel_spec/ /miniconda/share/jupyter/kernels/python3
+# write new kernel which initialises uses conda run for custom env
+# see: https://github.com/ipython/ipykernel/issues/416
+COPY custom_kernel_spec/ /miniconda/share/jupyter/kernels/python3
 
 # Make the default shell bash (vs "sh") for a better Jupyter terminal UX
-ENV SHELL=/bin/bash
-#RUN conda init bash
+ENV SHELL=/bin/bash \
+    NB_USER=$NB_USER \
+    NB_ENV=$NB_ENV \
+    NB_UID=$NB_UID \
+    NB_GID=$NB_GID \
+    HOME=/home/$NB_USER
 
+# Init conda to bash shell
+RUN conda init bash
+
+# Set the conda envs path to map to EFS (instead of requiring .condarc)
+ENV CONDA_AUTO_ACTIVATE_BASE=false \
+    CONDA_ENVS_PATH=/home/$NB_USER/.conda/envs
+
+WORKDIR $HOME
 USER $NB_UID
