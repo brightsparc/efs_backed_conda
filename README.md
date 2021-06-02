@@ -215,6 +215,12 @@ You can list the current conda environment by running:
 conda env list
 ```
 
+Activte teh custom kernel with the following command
+
+```bash
+. activate /home/$NB_USER/.conda/envs/$NB_ENV
+```
+
 You can also list all details of the current environment by running:
 
 ```bash
